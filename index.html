@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Valentine ? 💘</title>
+  <style>
+    :root{
+      --bg1:#ffdde1; --bg2:#ee9ca7;
+      --card:rgba(255,255,255,.9);
+      --shadow:0 18px 50px rgba(0,0,0,.15);
+      --yes:#22c55e; --no:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:radial-gradient(circle at 20% 20%, var(--bg1), var(--bg2));
+      overflow:hidden;
+    }
+    .card{
+      width:min(720px,92vw);
+      padding:28px 22px;
+      border-radius:22px;
+      background:var(--card);
+      box-shadow:var(--shadow);
+      text-align:center;
+      position:relative;
+      backdrop-filter: blur(8px);
+    }
+    h1{margin:6px 0 10px; font-size:clamp(26px,4vw,42px)}
+    p{margin:0 0 18px; opacity:.85}
+
+    .arena{
+      width:min(620px,90vw);
+      height:240px;
+      border-radius:18px;
+      background:rgba(255,255,255,.6);
+      border:1px solid rgba(0,0,0,.06);
+      position:relative;
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      touch-action:none;
+      margin:0 auto;
+    }
+
+    .btn{
+      border:none;
+      padding:14px 22px;
+      border-radius:999px;
+      font-size:18px;
+      font-weight:800;
+      cursor:pointer;
+      color:#fff;
+      box-shadow:0 12px 25px rgba(0,0,0,.15);
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+      transition:transform .08s ease;
+    }
+    .btn:active{transform:scale(.98)}
+
+    #yesBtn{background:var(--yes)}
+    #noBtn{
+      background:var(--no);
+      position:absolute;
+      left:60%;
+      top:60%;
+    }
+
+    .result{
+      margin-top:18px;
+      font-size:20px;
+      font-weight:900;
+      opacity:0;
+      transform:scale(.9);
+      transition:all .35s ease;
+    }
+    .result.show{
+      opacity:1;
+      transform:scale(1);
+    }
+
+    #confetti{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:9999;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="confetti"></canvas>
+
+  <div class="card">
+    <h1>Angelina, est-ce que tu veux être ma Valentine ? 💘</h1>
+    <p>Fais ton choix ❤️</p>
+
+    <div class="arena" id="arena">
+      <button class="btn" id="yesBtn" type="button">Oui 💖</button>
+      <button class="btn" id="noBtn" type="button">Non</button>
+    </div>
+
+    <div class="result" id="result" aria-live="polite"></div>
+  </div>
+
+  <script>
+    /***********************
+     *  CONFIG: Formspree
+     ***********************/
+    const FORMSPREE_URL = "https://formspree.io/f/xykdwkbk";
+
+    const arena  = document.getElementById("arena");
+    const noBtn  = document.getElementById("noBtn");
+    const yesBtn = document.getElementById("yesBtn");
+    const result = document.getElementById("result");
+
+    /***********************
+     *  Bouton NON qui fuit
+     ***********************/
+    function placeNoInitial(){
+      const r = arena.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+      const x = Math.max(10, r.width  - b.width  - 20);
+      const y = Math.max(10, r.height - b.height - 20);
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+    }
+
+    function moveNoAway(){
+      const r = arena.getBoundingClientRect();
+      const b = noBtn.getBoundingClientRect();
+      const pad = 10;
+
+      const maxX = Math.max(pad, r.width  - b.width  - pad);
+      const maxY = Math.max(pad, r.height - b.height - pad);
+
+      const x = pad + Math.random() * (maxX - pad);
+      const y = pad + Math.random() * (maxY - pad);
+
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+    }
+
+    document.addEventListener("mousemove", (e) => {
+      const b = noBtn.getBoundingClientRect();
+      const dist = Math.hypot(
+        e.clientX - (b.left + b.width/2),
+        e.clientY - (b.top  + b.height/2)
+      );
+      if (dist < 100) moveNoAway();
+    }, { passive:true });
+
+    document.addEventListener("touchmove", (e) => {
+      const t = e.touches && e.touches[0];
+      if(!t) return;
+      const b = noBtn.getBoundingClientRect();
+      const dist = Math.hypot(
+        t.clientX - (b.left + b.width/2),
+        t.clientY - (b.top  + b.height/2)
+      );
+      if (dist < 120) moveNoAway();
+    }, { passive:true });
+
+    noBtn.addEventListener("click", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      moveNoAway();
+    });
+    noBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      moveNoAway();
+    }, { passive:false });
+
+    // Placement initial (compatible Netlify / mobile)
+    setTimeout(placeNoInitial, 0);
+    window.addEventListener("load", placeNoInitial);
+    window.addEventListener("resize", placeNoInitial);
+
+    /***********************
+     *  Confettis (canvas)
+     ***********************/
+    const canvas = document.getElementById("confetti");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    let pieces = [];
+    let animId = null;
+    const rand = (min,max) => min + Math.random()*(max-min);
+
+    function burstConfetti(count = 220){
+      pieces = [];
+      const cx = window.innerWidth/2;
+      const cy = window.innerHeight/2;
+
+      for(let i=0;i<count;i++){
+        pieces.push({
+          x: cx + rand(-50, 50),
+          y: cy + rand(-30, 30),
+          vx: rand(-9, 9),
+          vy: rand(-14, -5),
+          g:  rand(0.18, 0.35),
+          size: rand(6, 12),
+          rot: rand(0, Math.PI*2),
+          vr:  rand(-0.25, 0.25),
+          life: Math.floor(rand(70, 140))
+        });
+      }
+      if(animId) cancelAnimationFrame(animId);
+      animateConfetti();
+    }
+
+    function animateConfetti(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      for(const p of pieces){
+        p.vy += p.g;
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.rot += p.vr;
+        p.life--;
+
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = `hsl(${Math.floor(rand(0,360))} 90% 60%)`;
+        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*0.7);
+        ctx.restore();
+      }
+
+      pieces = pieces.filter(p => p.life > 0 && p.y < canvas.height + 60);
+
+      if(pieces.length){
+        animId = requestAnimationFrame(animateConfetti);
+      } else {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        animId = null;
+      }
+    }
+
+    /***********************
+     *  Notification email
+     ***********************/
+    async function notifyYes(){
+      try{
+        await fetch(FORMSPREE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: "💘 Quelqu’un a cliqué sur OUI sur la page Valentine !",
+            page: window.location.href,
+            timestamp: new Date().toISOString()
+          })
+        });
+      } catch (e) {
+        console.log("Formspree error:", e);
+      }
+    }
+
+    /***********************
+     *  Clique sur OUI
+     ***********************/
+    yesBtn.addEventListener("click", async () => {
+      result.textContent = "Félicitations, tu vas recevoir un cadeau aujourd'hui 🎁";
+      result.classList.add("show");
+
+      burstConfetti();
+
+      yesBtn.disabled = true;
+      noBtn.style.opacity = "0.6";
+
+      await notifyYes();
+    });
+  </script>
+</body>
+</html>
